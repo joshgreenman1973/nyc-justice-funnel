@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>The justice funnel: from arrest to outcome in New York City</title>
-<meta name="description" content="Of every arrest in New York City, how many are declined, dismissed, pled down, convicted and sentenced — and how it shifted since bail reform.">
+<meta name="description" content="Of every arrest in New York City, how many are declined, dismissed, pled down, convicted and sentenced — and how it shifted since the January 2020 reforms.">
 <link rel="stylesheet" href="https://use.typekit.net/qqk2vto.css">
 <style>
   @font-face { font-family:"GascogneTS"; src:url("fonts/GascogneTS-Light.ttf") format("truetype"); font-weight:300; font-display:swap; }
@@ -101,7 +101,7 @@
   <div class="wrap">
     <div class="kicker">A crime-data explorer</div>
     <h1>The justice funnel: from arrest to outcome</h1>
-    <p class="dek">The maps and dashboards track the front of the system — the arrest. This one follows what happens after: of the cases New York City&rsquo;s courts handle, how many are <b>declined, dismissed, pled down, convicted and sentenced</b> — and how that has shifted since New York&rsquo;s bail laws changed on January 1, 2020.</p>
+    <p class="dek">The maps and dashboards track the front of the system — the arrest. This one follows what happens after: of the cases New York City&rsquo;s courts handle, how many are <b>declined, dismissed, pled down, convicted and sentenced</b> — and how that has shifted since New York&rsquo;s bail and discovery laws changed on January 1, 2020.</p>
 
     <div class="viewtabs" id="viewtabs">
       <button data-view="A" class="active">Outcomes of disposed cases</button>
@@ -146,8 +146,11 @@
     <ul>
       <li><b>&ldquo;Pled down&rdquo; is visible.</b> Both sources record the conviction charge separately from the arrest charge, so a felony arrest that ends in a misdemeanor or non-criminal conviction shows up as exactly that &mdash; the single most common way a felony case resolves in conviction here.</li>
       <li><b>Declined-to-prosecute is essentially a New York City phenomenon</b> in this data, and it captures declinations at or after arraignment &mdash; cases a district attorney declines before arraignment never enter the court files at all, so true declination is undercounted.</li>
-      <li><b>2020 is doubly disrupted.</b> It is both the first year of bail reform and the year COVID closed the courts. The state warns against reading 2020 outcomes as a normal year; where you want a clean before/after, compare 2019 with 2021 and later.</li>
-      <li><b>Bail reform is not one event.</b> The law took effect January 1, 2020 and was amended in 2020, 2022 and 2023. A single &ldquo;before and after&rdquo; line simplifies a moving target.</li>
+      <li><b>January 2020 changed several things at once.</b> Bail reform gets the headlines, but the same day New York&rsquo;s new discovery law (Criminal Procedure Law Article 245) and speedy-trial rules also took effect &mdash; and the discovery law, by giving prosecutors hard deadlines to turn over evidence or see the case dismissed, is widely credited as a bigger driver of the rise in dismissals than bail reform. Weeks later COVID closed the courts. Don&rsquo;t read the post-2020 shift as any single reform&rsquo;s doing; the state itself warns against treating 2020 as a normal year. For a cleaner contrast, compare 2019 with 2021 and later.</li>
+      <li><b>None of these reforms is one event.</b> Bail was amended again in 2020, 2022 and 2023; discovery in 2025. A single &ldquo;before and after&rdquo; line simplifies a moving target.</li>
+      <li><b>&ldquo;Convicted&rdquo; means convicted <i>and sentenced</i>.</b> The disposition tables count a case as convicted only once a sentence is imposed; convictions still awaiting sentencing are not counted as fully disposed, so they sit outside both the numerator and the denominator.</li>
+      <li><b>The unit is not a person.</b> View A counts arrest events (one arrest, however many charges, is one record, categorized by its most serious charge); View B counts court dockets (one arrest can generate more than one). Neither counts individuals, so a person arrested three times appears three times.</li>
+      <li><b>&ldquo;A custodial sentence&rdquo; includes time served.</b> Much of what looks like jail or prison is a sentence of time already served in pretrial detention, after which the person is released. The sentence panel breaks prison, jail and time served apart.</li>
       <li><b>Recent felony cases are still open.</b> In the arraignment-cohort view, a large share of the newest felony cases had no final disposition when the data was published; their outcomes are shown as pending, not as dismissals or acquittals.</li>
     </ul>
   </section>
@@ -292,8 +295,8 @@ function renderA(){
   const boroLab = STATE.borough==="New York City"?"New York City":STATE.borough;
   const sevLab = STATE.sev==="All"?"felony and misdemeanor":STATE.sev.toLowerCase();
   const convRate=F.pct(convicted,total), declRate=F.pct(d.declined||0,total), dismRate=F.pct((d.dismissed||0)+(d.acd||0)+(d.diverted||0),total);
-  $("chartHead").innerHTML = `Of ${F.n(total)} ${sevLab} cases disposed in ${boroLab} in ${STATE.year}, <span class="hl">${convRate.toFixed(0)}%</span> ended in conviction.`;
-  $("chartSub").textContent = `${declRate.toFixed(0)}% were declined by prosecutors, ${dismRate.toFixed(0)}% were dismissed. Each ribbon is proportional to the number of cases.`;
+  $("chartHead").innerHTML = `Of ${F.n(total)} ${sevLab} arrests disposed in ${boroLab} in ${STATE.year}, <span class="hl">${convRate.toFixed(0)}%</span> ended in a conviction.`;
+  $("chartSub").textContent = `${declRate.toFixed(0)}% were declined by prosecutors, ${dismRate.toFixed(0)}% were dismissed. Conviction counts a case only once a sentence is imposed. Each ribbon is proportional to the number of arrests.`;
 
   const columns=[
     [{id:"total",label:"Cases disposed",value:total,color:"#050507"}],
@@ -508,7 +511,12 @@ function calloutsA(d,total){
   // In the All/Misdemeanor views a misdemeanor->misdemeanor conviction is not a plea-down,
   // so this callout is scoped to the felony view only.
   if(STATE.sev==="Felony") box.appendChild(callout(F.pct1(pled,conv),"Of convictions, pled below the arrest charge","Felony arrests ending in a misdemeanor or non-criminal conviction"));
-  box.appendChild(callout(F.pct1((d.prison||0)+(d.jail||0)+(d.time_served||0)+(d.jail_probation||0),conv),"Of convictions, a jail or prison sentence","The rest: probation, fines or conditional discharge"));
+  // Custodial = prison + jail + time-served + jail/probation. "Time served" means the
+  // sentence equals the pretrial detention already served, after which the person is
+  // released — so we surface its share rather than let it read as prospective jail time.
+  const custodial=(d.prison||0)+(d.jail||0)+(d.time_served||0)+(d.jail_probation||0);
+  const tsShare=custodial?Math.round(100*(d.time_served||0)/custodial):0;
+  box.appendChild(callout(F.pct1(custodial,conv),"Of convictions, a custodial sentence",`Prison, jail or time already served &mdash; ${tsShare}% of it was time served. Fines, probation and conditional discharge make up the rest of all convictions.`));
 }
 function calloutsB(a,total,outT){
   const box=$("callouts"); box.innerHTML="";
@@ -522,8 +530,8 @@ function calloutsB(a,total,outT){
 
 // ---------- trend strips ----------
 function trendA(){
-  $("trendHead").innerHTML = "How the shape changed since bail reform";
-  $("trendSub").textContent = "Share of disposed cases by outcome, "+(STATE.borough==="New York City"?"citywide":STATE.borough)+", "+(STATE.sev==="All"?"all charges":STATE.sev.toLowerCase()+" charges")+". Dotted line: Jan 2020 (bail reform and COVID).";
+  $("trendHead").innerHTML = "How the shape changed since the 2020 reforms";
+  $("trendSub").textContent = "Share of disposed arrests by outcome, "+(STATE.borough==="New York City"?"citywide":STATE.borough)+", "+(STATE.sev==="All"?"all charges":STATE.sev.toLowerCase()+" charges")+". Dotted line: Jan 2020, when bail, discovery and speedy-trial reforms all took effect and, weeks later, COVID closed the courts.";
   const g=DISPO.data[STATE.borough]; const ys=Object.keys(g).map(Number).sort((a,b)=>a-b);
   const series=(keys)=>ys.map(y=>{const b=STATE.sev==="All"?merged(g[y]):(g[y][STATE.sev]||{}); const tot=b.total||0; const v=keys.reduce((s,k)=>s+(b[k]||0),0); return {y,v:F.pct(v,tot)};});
   const conv=series(["convicted"]), decl=series(["declined"]), dism=series(["dismissed","acd","diverted"]);
@@ -552,7 +560,7 @@ function sparkPanel(title,seriesList,ys,showReformLine=true){
   let svg=`<div style="font:700 15px var(--disp);margin-bottom:2px;">${title}</div><svg class="spark" viewBox="0 0 ${W} ${H}">`;
   // gridlines
   for(let g=0;g<=maxV;g+=Math.ceil(maxV/4/5)*5){ if(g>maxV)break; svg+=`<line x1="${pL}" x2="${W-pR}" y1="${yv(g)}" y2="${yv(g)}" stroke="#dddddd"/><text x="${pL-6}" y="${yv(g)+3}" text-anchor="end" font-size="10" fill="#707175">${g}%</text>`; }
-  if(showReformLine){ const rx=pL+(( (2020-ys[0]) - 0.5)/(ys.length-1))*(W-pL-pR); svg+=`<line x1="${rx}" x2="${rx}" y1="${pT}" y2="${H-pB}" stroke="#050507" stroke-dasharray="2 3"/><text x="${rx+3}" y="${pT+9}" font-size="9" fill="#050507" font-weight="700">BAIL REFORM / COVID</text>`; }
+  if(showReformLine){ const rx=pL+(( (2020-ys[0]) - 0.5)/(ys.length-1))*(W-pL-pR); svg+=`<line x1="${rx}" x2="${rx}" y1="${pT}" y2="${H-pB}" stroke="#050507" stroke-dasharray="2 3"/><text x="${rx+3}" y="${pT+9}" font-size="9" fill="#050507" font-weight="700">2020 REFORMS / COVID</text>`; }
   seriesList.forEach(ser=>{
     const pts=ser.s.filter(p=>p.v!=null);
     const dpath=pts.map((p,i)=>(i?"L":"M")+x(p.y)+","+yv(p.v)).join(" ");

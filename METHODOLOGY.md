@@ -49,11 +49,19 @@ Every case **first arraigned** in a given year, followed forward to its disposit
 
 The top-of-funnel arrest counts (DCJS [Adult Arrests by County](https://data.ny.gov/resource/rikd-mt35.json), dataset `rikd-mt35`) are shown for context only. **Arrest counts and disposition counts are different denominators on different clocks** — arrests are fingerprintable arrests by arrest year; dispositions are cases ending by disposition year — so the tool never draws a literal flow from the arrest bar into the disposition funnel.
 
-## Shared caveats
+## Domain notes and shared caveats
 
-- **2020 is doubly disrupted:** first year of bail reform and the year COVID closed the courts. DCJS warns against reading 2020 as a normal year; for a clean before/after, compare 2019 with 2021+.
-- **Bail reform is not one event:** effective January 1, 2020, amended in 2020, 2022 and 2023.
-- **Declined-to-prosecute is undercounted:** cases a district attorney declines *before* arraignment never enter the court files.
+These are the things a criminal-justice reader should hold in mind.
+
+- **Unit of counting.** View A (DCJS) counts **arrest events**: one fingerprintable arrest is one record, categorized by its most serious charge, "and for arrest events with multiple charges, the disposition shown is the most serious disposition" (DCJS data notes). View B (OCA) counts **court dockets**, and one arrest can generate more than one docket. Neither counts unique individuals — a person arrested three times appears three times.
+- **"Convicted" means convicted *and sentenced*.** DCJS: "a conviction without a sentence [is] not considered fully disposed and [is] not displayed." Convictions awaiting sentencing sit outside both the numerator and the denominator, so the conviction rate is measured among fully disposed arrests.
+- **The conviction-rate denominator includes declined and dismissed cases.** This tool reports convictions as a share of *all disposed arrests*, not of *prosecuted* cases. That is why its conviction rate reads lower than analyses that divide convictions by cases actually prosecuted — a different, equally valid construct. Every headline states its denominator.
+- **January 2020 changed several things at once.** Bail reform, the new discovery law (Criminal Procedure Law Article 245) and speedy-trial rules all took effect January 1, 2020; the discovery law's hard evidence-disclosure deadlines are widely credited as a larger driver of the post-2020 rise in dismissals than bail reform itself. COVID closed the courts weeks later. The tool labels the 2020 line as "2020 reforms / COVID" rather than attributing the shift to bail reform alone. DCJS warns against treating 2020 as a normal year; for a cleaner contrast compare 2019 with 2021+. None of these reforms is a single event (bail was amended in 2020, 2022, 2023; discovery in 2025).
+- **"Custodial sentence" includes time served.** A large share of custodial sentences (often the majority, for misdemeanors) is "time served" — the sentence equals pretrial detention already served, after which the person is released. The sentence panel separates prison, jail and time served; the summary callout states the time-served share.
+- **Declined-to-prosecute is undercounted and NYC-specific.** DCJS: this disposition "primarily occurs in the five counties/boroughs of New York City." It captures declinations at or after arraignment; cases a DA declines *before* arraignment never enter the data.
+- **Youthful Offender adjudications count as convictions.** For the 18-year-olds in this adult dataset, YO status (under 1% of cases, per DCJS) is folded into the conviction categories, consistent with DCJS's own tables.
+- **Diversion is undercounted.** DCJS: "Not all 'Diverted and dismissed' dispositions are reported to DCJS," so treatment-court and diversion outcomes are understated.
+- **ACD is a conditional dismissal.** "Dismissed (ACD)" (CPL 170.55) is an adjournment in contemplation of dismissal — the case is dismissed later if the defendant stays out of trouble. It is shown as its own node and grouped with dismissals, never with convictions.
 - **Small slices:** Staten Island felony counts in some years are small; percentages there are noisier.
 
 ## Reproducing this
