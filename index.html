@@ -92,7 +92,19 @@
   .ai-caution .popover{display:none;position:absolute;bottom:calc(100% + 10px);left:0;width:min(460px,86vw);background:#1f2a44;color:#eef1f7;padding:16px 18px;border-radius:8px;font-size:13px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.28);z-index:50;}
   .ai-caution.open .popover{display:block;}
   .ai-caution .popover:after{content:"";position:absolute;top:100%;left:22px;border:8px solid transparent;border-top-color:#1f2a44;}
-  .tooltip{position:fixed;pointer-events:none;background:var(--black);color:#fff;font-size:12.5px;padding:7px 10px;border-radius:5px;max-width:240px;z-index:100;opacity:0;transition:opacity .1s;line-height:1.35;}
+  .tooltip{position:fixed;pointer-events:none;background:var(--black);color:#fff;font-size:12.5px;padding:9px 12px;border-radius:6px;max-width:290px;z-index:100;opacity:0;transition:opacity .08s;line-height:1.4;box-shadow:0 6px 20px rgba(0,0,0,.3);}
+  .tooltip b{font-family:var(--disp);font-weight:700;}
+  .tooltip .tip-pct{color:#b9b9ba;font-weight:400;}
+  .tooltip .tip-def{margin-top:6px;color:#e8e8ea;}
+  .tooltip .tip-calc{margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,.22);color:#c9ccce;font-size:11.5px;}
+  .has-tip{cursor:help;}
+  .colhead{cursor:help;text-decoration:underline dotted rgba(0,0,0,.35);text-underline-offset:3px;}
+  .tip-hint{font-size:12.5px;color:var(--charcoal);margin-top:10px;display:flex;align-items:center;gap:6px;}
+  .tip-hint:before{content:"\24d8";font-size:14px;color:var(--indigo);}
+  .ctl label.has-tip{text-decoration:underline dotted var(--charcoal);text-underline-offset:2px;}
+  .sbar.has-tip .track{cursor:help;}
+  .callout.has-tip{position:relative;}
+  .callout.has-tip:after{content:"\24d8";position:absolute;top:10px;right:12px;color:var(--charcoal);font-size:13px;}
 </style>
 </head>
 <body>
@@ -117,6 +129,7 @@
   <div class="chartwrap">
     <div class="chart-head" id="chartHead"></div>
     <div class="chart-sub" id="chartSub"></div>
+    <p class="tip-hint">Hover or tap any bar, label or heading for its definition and how the number is calculated.</p>
     <div class="funnelbox"><svg class="funnel" id="funnel" preserveAspectRatio="xMinYMin meet"></svg></div>
   </div>
 
@@ -205,6 +218,76 @@ const OUTB_ORDER = ["plea","trial_guilty","dismissed","acd","acquitted","outcome
 const OUTB_LABEL = {plea:"Guilty plea",trial_guilty:"Convicted at trial",dismissed:"Dismissed",acd:"Dismissed (ACD)",acquitted:"Acquitted",outcome_other:"Other",transfer_unknown:"Sent to grand jury (outcome not in data)",pending:"Still pending / open"};
 const OUTB_COLOR = {plea:"#ff7c53",trial_guilty:"#d2232a",dismissed:"#3a6ea5",acd:"#6d97c4",acquitted:"#7fbf7a",outcome_other:"#cdcfde",transfer_unknown:"#e2e3e2",pending:"#c9ccce"};
 
+// ---- definitions + how-computed, shown in tooltips. {d: plain meaning, c: how the number is derived} ----
+const DEFS = {
+  // View A top + outcomes
+  total:{d:"Adult arrests that reached a final disposition this year. Counted by the year the case ended, so a 2018 arrest resolved in 2024 lands in 2024. Convictions not yet sentenced are excluded.",c:"Sum of every outcome category to the right."},
+  declined:{d:"The District Attorney declined to bring formal charges. Almost exclusively a New York City outcome, and only captured at or after arraignment — declinations made before arraignment never enter this data.",c:"“DA Declined to Prosecute” ÷ all disposed arrests."},
+  dismissed:{d:"Dismissed by the court on the merits or on procedure — not an ACD.",c:"“Dismissed–Not ACD” ÷ all disposed arrests."},
+  acd:{d:"Adjournment in Contemplation of Dismissal (CPL 170.55): the case is adjourned and then dismissed later if the defendant stays out of trouble. A conditional dismissal, not a conviction.",c:"“Dismissed–ACD” ÷ all disposed arrests."},
+  diverted:{d:"Dismissed after completing a treatment or diversion program. Undercounted — the state notes not all diversion outcomes are reported to DCJS.",c:"“Diverted and Dismissed” ÷ all disposed arrests."},
+  covered:{d:"Resolved as part of a separate case (usually a guilty plea in another docket), so this arrest has no outcome of its own.",c:"“Covered by Another Case” ÷ all disposed arrests."},
+  acquitted:{d:"Found not guilty after a trial.",c:"“Acquitted” ÷ all disposed arrests."},
+  other:{d:"Other non-conviction outcomes — e.g. New York had no jurisdiction, or the case abated by the defendant’s death.",c:"“Other Favorable” ÷ all disposed arrests."},
+  convicted:{d:"Convicted by guilty plea or trial, with a sentence imposed. Convictions still awaiting sentencing are not counted as disposed.",c:"“Convicted–Sentenced” ÷ all disposed arrests."},
+  // conviction levels
+  conv_felony:{d:"Convicted of a felony.",c:"Felony-level convictions ÷ all convictions."},
+  conv_misd:{d:"Convicted of a misdemeanor. For a felony arrest, this is a plea down to a lesser charge.",c:"Misdemeanor-level convictions ÷ all convictions."},
+  conv_noncrim:{d:"Convicted of a non-criminal offense — a violation or infraction such as disorderly conduct, which is not a crime under New York law.",c:"Non-criminal convictions ÷ all convictions."},
+  conv_unknown:{d:"Conviction level not recorded.",c:"Unknown-level convictions ÷ all convictions."},
+  // sentences
+  prison:{d:"A state prison sentence (more than one year).",c:"Prison sentences ÷ all convictions."},
+  jail:{d:"A local jail sentence (up to one year).",c:"Jail sentences ÷ all convictions."},
+  time_served:{d:"The sentence equals the time already spent in pretrial detention — the person is released, not newly jailed.",c:"Time-served sentences ÷ all convictions."},
+  jail_probation:{d:"A split sentence: a period of jail followed by probation.",c:"Jail-plus-probation sentences ÷ all convictions."},
+  probation:{d:"Community supervision instead of incarceration.",c:"Probation sentences ÷ all convictions."},
+  fine:{d:"A monetary fine, no incarceration.",c:"Fine sentences ÷ all convictions."},
+  cond_discharge:{d:"Conditional discharge: released on conditions with no incarceration — the most common misdemeanor sentence.",c:"Conditional-discharge sentences ÷ all convictions."},
+  sent_other:{d:"Other sentence types, including surcharges and restitution.",c:"Other sentences ÷ all convictions."},
+  incarceration:{d:"A sentence of state prison or local jail (beyond time already served).",c:"Prison + jail sentences ÷ all convictions."},
+  sent_none:{d:"No sentence type recorded for the conviction.",c:"÷ all convictions."},
+  // View B: release decisions
+  arr:{d:"Cases first arraigned this year, followed forward to their disposition — the cohort. Counts court dockets; one arrest can produce more than one.",c:"All local-court New York City arraignments that year."},
+  ror:{d:"Released on recognizance: freed on a promise to return, with no bail and no conditions.",c:"ROR at arraignment ÷ all arraigned cases."},
+  nmr:{d:"Nonmonetary release: freed under conditions such as supervision or check-ins, without money bail.",c:"Nonmonetary release ÷ all arraigned cases."},
+  disposed_arraign:{d:"The case ended right at arraignment — usually a guilty plea to a violation or an immediate dismissal — so no pretrial-release question arose.",c:"Disposed at arraignment ÷ all arraigned cases."},
+  bail_posted:{d:"Bail was set and the defendant paid it, securing release.",c:"Bail set and posted ÷ all arraigned cases."},
+  bail_not_posted:{d:"Bail was set but not paid, so the defendant was detained — typically because the amount was unaffordable.",c:"Bail set and not posted ÷ all arraigned cases."},
+  remand:{d:"Held without the option of bail, permitted only for qualifying serious charges.",c:"Remanded at arraignment ÷ all arraigned cases."},
+  rel_unknown:{d:"Release decision not recorded.",c:"÷ all arraigned cases."},
+  // View B: case outcomes (ids are prefixed o_)
+  plea:{d:"Pleaded guilty — the way the large majority of convictions are reached.",c:"Guilty pleas ÷ all arraigned cases."},
+  trial_guilty:{d:"Found guilty after a trial.",c:"Trial convictions ÷ all arraigned cases."},
+  outcome_other:{d:"Other outcome type.",c:"÷ all arraigned cases."},
+  transfer_unknown:{d:"Indicted and moved to Supreme Court, but the superior-court record isn’t in this file, so the final outcome is unknown here. These are disproportionately the most serious cases.",c:"Felony cases sent to a grand jury whose superior-court outcome could not be linked."},
+  pending:{d:"No final disposition when the data was published. Common for recent felony cases, which can take a year or more to resolve.",c:"Open dockets ÷ all arraigned cases."},
+};
+// column headers
+const COLDEF = {
+  "Disposed":{d:"Every adult arrest that reached a final outcome this year.",c:""},
+  "Outcome":{d:"How each arrest was resolved — the branches sum back to the disposed total on the left.",c:""},
+  "Conviction level":{d:"For the convicted cases only, whether the conviction charge was a felony, a misdemeanor or a non-criminal offense — the pled-down picture.",c:""},
+  "Arraigned":{d:"Cases first arraigned this year, followed forward. The cohort.",c:""},
+  "Release decision":{d:"What was decided about pretrial release at arraignment — the machinery bail reform changed.",c:""},
+  "Case outcome":{d:"How each case was ultimately resolved.",c:""},
+};
+// resolve a def by node id (strip the View B "o_" outcome prefix)
+function lookupDef(id){ return DEFS[id] || DEFS[String(id).replace(/^o_/,"")] || null; }
+// build tooltip HTML: heading line + optional count/% + definition + how-computed
+function tipHTML(title, count, pct, denomLabel, def){
+  let h = `<b>${title}</b>`;
+  if(count!=null) h += ` &mdash; ${F.n(count)}` + (pct!=null?` <span class="tip-pct">(${pct} of ${denomLabel})</span>`:"");
+  if(def && def.d) h += `<div class="tip-def">${def.d}</div>`;
+  if(def && def.c) h += `<div class="tip-calc">How: ${def.c}</div>`;
+  return h;
+}
+function attachTip(node, html){
+  node.style.cursor="help";
+  node.addEventListener("mousemove",e=>showTip(e,html));
+  node.addEventListener("mouseleave",hideTip);
+  if(node.addEventListener) node.addEventListener("click",e=>showTip(e,html)); // tap support
+}
+
 const $ = id => document.getElementById(id);
 const el = (t,a={}) => { const e=document.createElementNS("http://www.w3.org/2000/svg",t); for(const k in a) e.setAttribute(k,a[k]); return e; };
 
@@ -248,9 +331,17 @@ function buildControls(){
     : "<b>Arraignment cohort basis.</b> Every case first arraigned that year, followed forward. Starts 2020; recent felony cases may still be open. Source: court pretrial case files.";
 }
 
+const CTLDEF = {
+  "Borough":"The county where the case was handled: the Bronx (Bronx), Brooklyn (Kings), Manhattan (New York), Queens, Staten Island (Richmond). “Citywide” sums all five.",
+  "Charge at arrest":"The most serious charge at the time of arrest. Felony = punishable by more than one year; misdemeanor = up to one year. “All” combines both.",
+};
 function seg(label, opts, active, cb, fmt, cls=""){
   const wrap=document.createElement("div"); wrap.className="ctl";
   const l=document.createElement("label"); l.textContent=label; wrap.appendChild(l);
+  const cdef = label==="Year"
+    ? (STATE.view==="A" ? "The year the case reached its final disposition — not the year of arrest." : "The year the case was first arraigned. Recent years are still filling in.")
+    : CTLDEF[label];
+  if(cdef){ l.classList.add("has-tip"); attachTip(l, `<b>${label}</b><div class="tip-def">${cdef}</div>`); }
   const s=document.createElement("div"); s.className="seg "+cls;
   opts.forEach(o=>{
     const b=document.createElement("button"); b.textContent=fmt?fmt(o):o;
@@ -388,6 +479,8 @@ function drawSankey(columns, links, colHeads){
     const x=marginL+ci*colGap+(ci===0?0:nodeW+7);
     const t=el("text",{x, y:24, "text-anchor":"start", class:"colhead"});
     t.textContent=colHeads[ci]; svg.appendChild(t);
+    const cd=COLDEF[colHeads[ci]];
+    if(cd) attachTip(t, tipHTML(colHeads[ci], null, null, null, cd));
   });
 
   // links (under nodes)
@@ -408,9 +501,7 @@ function drawSankey(columns, links, colHeads){
   Object.values(pos).forEach(p=>{
     const n=p.node;
     const rect=el("rect",{x:p.x,y:p.y,width:nodeW,height:p.h,fill:n.color,rx:1});
-    rect.style.cursor="default";
-    rect.addEventListener("mousemove",e=>showTip(e,`${n.label}: ${F.n(n.value)} (${F.pct1(n.value,totalRef)} of ${F.n(totalRef)})`));
-    rect.addEventListener("mouseleave",hideTip);
+    attachTip(rect, tipHTML(n.label, n.value, F.pct1(n.value,totalRef), F.n(totalRef), lookupDef(n.id)));
     svg.appendChild(rect);
   });
 
@@ -425,6 +516,7 @@ function drawSankey(columns, links, colHeads){
       t1.textContent=col[0].label; g.appendChild(t1);
       const t2=el("text",{x:p.x,y:p.y-3,"text-anchor":"start",class:"nval","font-size":11});
       t2.textContent=`${F.n(col[0].value)} · 100%`; g.appendChild(t2);
+      attachTip(g, tipHTML(col[0].label, col[0].value, "100%", F.n(totalRef), lookupDef(col[0].id)));
       svg.appendChild(g);
       return;
     }
@@ -452,6 +544,7 @@ function drawSankey(columns, links, colHeads){
       if(Math.abs(nodeCy-it.c)>4){
         svg.appendChild(el("line",{x1:it.p.x+nodeW,y1:nodeCy,x2:lx-3,y2:it.c,stroke:"#cccccc","stroke-width":0.75}));
       }
+      attachTip(g, tipHTML(it.n.label, it.n.value, F.pct1(it.n.value,totalRef), F.n(totalRef), lookupDef(it.n.id)));
       svg.appendChild(g);
     });
   });
@@ -464,7 +557,7 @@ function sentencePanel(d, denom, headline){
   if(!denom) return;
   const rows=SENT_ORDER_A.map(k=>({k,v:d[k]||0})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
   const max=Math.max(...rows.map(r=>r.v),1);
-  rows.forEach(r=>box.appendChild(sbar(SENT_LABEL[r.k],r.v,denom,max,SENT_COLOR[r.k])));
+  rows.forEach(r=>box.appendChild(sbar(SENT_LABEL[r.k],r.v,denom,max,SENT_COLOR[r.k],r.k)));
 }
 function convLevelPanelB(levels, convicted, sent){
   $("spHead").innerHTML = convicted ? `Of the ${F.n(convicted)} convictions, the conviction level and sentence were:` : "";
@@ -475,57 +568,70 @@ function convLevelPanelB(levels, convicted, sent){
   head1.textContent="Conviction level"; box.appendChild(head1);
   const lv=CONV_ORDER.concat("conv_unknown").map(k=>({k,v:levels[k]||0})).filter(r=>r.v>0);
   const maxL=Math.max(...lv.map(r=>r.v),1);
-  lv.forEach(r=>box.appendChild(sbar(CONV_LABEL[r.k],r.v,convicted,maxL,C[r.k])));
+  lv.forEach(r=>box.appendChild(sbar(CONV_LABEL[r.k],r.v,convicted,maxL,C[r.k],r.k)));
   const head2=document.createElement("div"); head2.style.cssText="font:700 12px var(--disp);letter-spacing:.05em;text-transform:uppercase;color:var(--charcoal);margin:12px 0 2px;";
   head2.textContent="Most serious sentence"; box.appendChild(head2);
   const order=["incarceration","time_served","probation","fine","cond_discharge","sent_other","sent_none"];
   const sv=order.map(k=>({k,v:sent[k]||0})).filter(r=>r.v>0);
   const maxS=Math.max(...sv.map(r=>r.v),1);
-  sv.forEach(r=>box.appendChild(sbar(SENT_LABEL[r.k]||r.k,r.v,convicted,maxS,SENT_COLOR[r.k]||"#b9b9ba")));
+  sv.forEach(r=>box.appendChild(sbar(SENT_LABEL[r.k]||r.k,r.v,convicted,maxS,SENT_COLOR[r.k]||"#b9b9ba",r.k)));
 }
-function sbar(label,v,denom,max,color){
+function sbar(label,v,denom,max,color,defKey){
   const row=document.createElement("div"); row.className="sbar";
   const l=document.createElement("div"); l.textContent=label;
   const track=document.createElement("div"); track.className="track";
   const fill=document.createElement("div"); fill.className="fill"; fill.style.width=(100*v/max)+"%"; fill.style.background=color;
   track.appendChild(fill);
   const pct=document.createElement("div"); pct.className="pct"; pct.textContent=F.pct1(v,denom);
-  pct.title=F.n(v)+" cases";
   row.appendChild(l); row.appendChild(track); row.appendChild(pct);
+  const def=defKey?lookupDef(defKey):null;
+  if(def){ row.classList.add("has-tip"); attachTip(row, tipHTML(label, v, F.pct1(v,denom), F.n(denom), def)); }
+  else row.title=F.n(v)+" cases";
   return row;
 }
 
 // ---------- callouts ----------
-function callout(big,lab,sub){
+function callout(big,lab,sub,tip){
   const d=document.createElement("div"); d.className="callout";
   d.innerHTML=`<div class="big">${big}</div><div class="lab">${lab}</div><div class="sub">${sub}</div>`;
+  if(tip){ d.classList.add("has-tip"); attachTip(d, tip); }
   return d;
+}
+// tooltip for a callout: heading + plain meaning + explicit numerator ÷ denominator
+function ctip(title, def, num, denom, denomWord){
+  let h=`<b>${title}</b><div class="tip-def">${def}</div>`;
+  h+=`<div class="tip-calc">How: ${F.n(num)} ÷ ${F.n(denom)} ${denomWord} = ${F.pct1(num,denom)}</div>`;
+  return h;
 }
 function calloutsA(d,total){
   const box=$("callouts"); box.innerHTML="";
   const conv=d.convicted||0;
   const pled=(d.conv_misd||0)+(d.conv_noncrim||0);
-  box.appendChild(callout(F.pct1(d.declined||0,total),"Declined by prosecutors","DA declined to prosecute"));
-  box.appendChild(callout(F.pct1((d.dismissed||0)+(d.acd||0),total),"Dismissed","Including adjournments in contemplation of dismissal"));
+  box.appendChild(callout(F.pct1(d.declined||0,total),"Declined by prosecutors","DA declined to prosecute",
+    ctip("Declined by prosecutors","The District Attorney declined to bring formal charges. Almost exclusively a New York City outcome, captured only at or after arraignment.",d.declined||0,total,"disposed arrests")));
+  box.appendChild(callout(F.pct1((d.dismissed||0)+(d.acd||0),total),"Dismissed","Including adjournments in contemplation of dismissal",
+    ctip("Dismissed","Cases dismissed by the court, including ACDs — adjournments that end in dismissal if the defendant stays out of trouble.",(d.dismissed||0)+(d.acd||0),total,"disposed arrests")));
   // "Pled down" is only unambiguous for felony arrests (felony -> lesser conviction).
-  // In the All/Misdemeanor views a misdemeanor->misdemeanor conviction is not a plea-down,
-  // so this callout is scoped to the felony view only.
-  if(STATE.sev==="Felony") box.appendChild(callout(F.pct1(pled,conv),"Of convictions, pled below the arrest charge","Felony arrests ending in a misdemeanor or non-criminal conviction"));
-  // Custodial = prison + jail + time-served + jail/probation. "Time served" means the
-  // sentence equals the pretrial detention already served, after which the person is
-  // released — so we surface its share rather than let it read as prospective jail time.
+  if(STATE.sev==="Felony") box.appendChild(callout(F.pct1(pled,conv),"Of convictions, pled below the arrest charge","Felony arrests ending in a misdemeanor or non-criminal conviction",
+    ctip("Pled below the arrest charge","A felony arrest that ends in a conviction to a lesser misdemeanor or non-criminal charge — the classic plea down.",pled,conv,"felony convictions")));
+  // Custodial = prison + jail + time-served + jail/probation; surface the time-served share.
   const custodial=(d.prison||0)+(d.jail||0)+(d.time_served||0)+(d.jail_probation||0);
   const tsShare=custodial?Math.round(100*(d.time_served||0)/custodial):0;
-  box.appendChild(callout(F.pct1(custodial,conv),"Of convictions, a custodial sentence",`Prison, jail or time already served &mdash; ${tsShare}% of it was time served. Fines, probation and conditional discharge make up the rest of all convictions.`));
+  box.appendChild(callout(F.pct1(custodial,conv),"Of convictions, a custodial sentence",`Prison, jail or time already served &mdash; ${tsShare}% of it was time served. Fines, probation and conditional discharge make up the rest of all convictions.`,
+    ctip("A custodial sentence","Prison, jail, jail-plus-probation, or time already served. Of this, "+tsShare+"% is time served — pretrial detention already spent, after which the person is released.",custodial,conv,"convictions")));
 }
 function calloutsB(a,total,outT){
   const box=$("callouts"); box.innerHTML="";
   const bailSet=(a.release.bail_posted||0)+(a.release.bail_not_posted||0);
   const released=(a.release.ror||0)+(a.release.nmr||0);
-  box.appendChild(callout(F.pct1(released,total),"Released without bail","On recognizance or under nonmonetary conditions"));
-  box.appendChild(callout(F.pct1(a.release.bail_not_posted||0,total),"Bail set but not posted","Detained at arraignment because bail was unaffordable"));
-  box.appendChild(callout(F.pct1(a.release.remand||0,total),"Remanded","Held without bail"));
-  box.appendChild(callout(F.pct1(outT.pending||0,total),"Still pending","No final disposition when the data was published"));
+  box.appendChild(callout(F.pct1(released,total),"Released without bail","On recognizance or under nonmonetary conditions",
+    ctip("Released without bail","Freed at arraignment on recognizance (a promise to return) or under nonmonetary conditions — no money bail set.",released,total,"arraigned cases")));
+  box.appendChild(callout(F.pct1(a.release.bail_not_posted||0,total),"Bail set but not posted","Detained at arraignment because bail was unaffordable",
+    ctip("Bail set but not posted","Bail was set but not paid, so the defendant was detained — typically because the amount was unaffordable.",a.release.bail_not_posted||0,total,"arraigned cases")));
+  box.appendChild(callout(F.pct1(a.release.remand||0,total),"Remanded","Held without bail",
+    ctip("Remanded","Held with no option of bail, permitted only for qualifying serious charges.",a.release.remand||0,total,"arraigned cases")));
+  box.appendChild(callout(F.pct1(outT.pending||0,total),"Still pending","No final disposition when the data was published",
+    ctip("Still pending","No final disposition when the data was published. Common for recent felony cases, which can take a year or more to resolve.",outT.pending||0,total,"arraigned cases")));
 }
 
 // ---------- trend strips ----------
@@ -577,7 +683,11 @@ function sparkPanel(title,seriesList,ys,showReformLine=true){
 }
 
 // ---------- tooltip ----------
-function showTip(e,txt){const t=$("tip");t.textContent=txt;t.style.opacity="1";t.style.left=Math.min(e.clientX+14,window.innerWidth-250)+"px";t.style.top=(e.clientY+14)+"px";}
+function showTip(e,html){const t=$("tip");t.innerHTML=html;t.style.opacity="1";
+  const w=t.offsetWidth||290, h=t.offsetHeight||80;
+  let x=e.clientX+14; if(x+w>window.innerWidth-8) x=e.clientX-w-14;
+  let y=e.clientY+16; if(y+h>window.innerHeight-8) y=Math.max(8,e.clientY-h-12);
+  t.style.left=Math.max(8,x)+"px"; t.style.top=y+"px";}
 function hideTip(){$("tip").style.opacity="0";}
 </script>
 </body>
