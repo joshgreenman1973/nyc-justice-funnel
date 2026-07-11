@@ -504,7 +504,10 @@ function calloutsA(d,total){
   const pled=(d.conv_misd||0)+(d.conv_noncrim||0);
   box.appendChild(callout(F.pct1(d.declined||0,total),"Declined by prosecutors","DA declined to prosecute"));
   box.appendChild(callout(F.pct1((d.dismissed||0)+(d.acd||0),total),"Dismissed","Including adjournments in contemplation of dismissal"));
-  if(STATE.sev!=="Misdemeanor") box.appendChild(callout(F.pct1(pled,conv),"Of convictions, pled below the arrest charge","Felony arrests ending in a misdemeanor or non-criminal conviction"));
+  // "Pled down" is only unambiguous for felony arrests (felony -> lesser conviction).
+  // In the All/Misdemeanor views a misdemeanor->misdemeanor conviction is not a plea-down,
+  // so this callout is scoped to the felony view only.
+  if(STATE.sev==="Felony") box.appendChild(callout(F.pct1(pled,conv),"Of convictions, pled below the arrest charge","Felony arrests ending in a misdemeanor or non-criminal conviction"));
   box.appendChild(callout(F.pct1((d.prison||0)+(d.jail||0)+(d.time_served||0)+(d.jail_probation||0),conv),"Of convictions, a jail or prison sentence","The rest: probation, fines or conditional discharge"));
 }
 function calloutsB(a,total,outT){
