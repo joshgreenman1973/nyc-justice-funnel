@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The justice funnel: from arrest to outcome in New York City</title>
+<meta name="description" content="Of every arrest in New York City, how many are declined, dismissed, pled down, convicted and sentenced — and how it shifted since bail reform.">
+<link rel="stylesheet" href="https://use.typekit.net/qqk2vto.css">
+<style>
+  @font-face { font-family:"GascogneTS"; src:url("fonts/GascogneTS-Light.ttf") format("truetype"); font-weight:300; font-display:swap; }
+  :root{
+    --black:#050507; --white:#fff; --cloud:#dddddd; --cloud2:#eef0f2;
+    --chartreuse:#dde44c; --orange:#ff7c53; --charcoal:#707175; --charcoal20:#e2e3e2;
+    --indigo:#394882; --cerulean:#217ebe; --periwinkle:#9b9fbc; --magenta:#e7466d; --rose:#cea9be;
+    --red:#d2232a; --redmid:#ed5236; --green:#57aa4a;
+    --sans:"halyard-text","Halyard Text",-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --disp:"halyard-display","Halyard Display",-apple-system,"Helvetica Neue",Arial,sans-serif;
+    --serif:"GascogneTS",Georgia,serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:var(--sans);color:var(--black);background:var(--white);line-height:1.5;}
+  a{color:var(--indigo);}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 20px;}
+
+  header.mast{border-bottom:3px solid var(--black);padding:34px 0 24px;}
+  .kicker{font-family:var(--disp);font-weight:700;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--orange);}
+  h1{font-family:var(--disp);font-weight:800;font-size:clamp(32px,5vw,54px);line-height:1.04;margin:10px 0 14px;letter-spacing:-.01em;}
+  .dek{font-size:19px;max-width:820px;color:#1d1d1f;}
+  .dek b{font-weight:600;}
+
+  .viewtabs{display:flex;gap:0;margin:24px 0 0;border:2px solid var(--black);width:fit-content;max-width:100%;flex-wrap:wrap;}
+  .viewtabs button{font:700 14px var(--disp);letter-spacing:.02em;background:var(--white);border:none;padding:12px 20px;cursor:pointer;border-right:2px solid var(--black);}
+  .viewtabs button:last-child{border-right:none;}
+  .viewtabs button.active{background:var(--black);color:var(--white);}
+  .viewnote{font-size:14px;color:var(--charcoal);margin:12px 0 0;max-width:820px;}
+  .viewnote b{color:var(--black);}
+
+  .controls{display:flex;flex-wrap:wrap;gap:16px 26px;align-items:flex-end;margin:22px 0 6px;padding:16px 0;border-top:1px solid var(--cloud);border-bottom:1px solid var(--cloud);}
+  .ctl{display:flex;flex-direction:column;gap:5px;}
+  .ctl label{font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--charcoal);}
+  .seg{display:flex;flex-wrap:wrap;gap:5px;}
+  .seg button{font:600 13px var(--sans);background:var(--white);border:1.5px solid var(--cloud);padding:7px 12px;cursor:pointer;}
+  .seg button:hover{border-color:var(--charcoal);}
+  .seg button.active{background:var(--black);color:var(--white);border-color:var(--black);}
+  .yearseg button{min-width:44px;text-align:center;}
+
+  .chartwrap{margin:26px 0 8px;}
+  .chart-head{font-family:var(--disp);font-weight:800;font-size:clamp(20px,2.6vw,27px);line-height:1.2;max-width:900px;}
+  .chart-head .hl{color:var(--orange);}
+  .chart-sub{font-size:14.5px;color:var(--charcoal);margin-top:6px;max-width:900px;}
+  .funnelbox{overflow-x:auto;margin-top:18px;}
+  svg.funnel{display:block;min-width:720px;width:100%;height:auto;font-family:var(--sans);}
+  .nlabel{font-family:var(--disp);font-weight:700;}
+  .nval{fill:var(--charcoal);}
+  .colhead{font-family:var(--disp);font-weight:800;font-size:12px;letter-spacing:.06em;text-transform:uppercase;fill:var(--black);}
+
+  .sentence-panel{margin:18px 0 4px;padding:18px 0 4px;border-top:1px solid var(--cloud);}
+  .sp-head{font-family:var(--disp);font-weight:700;font-size:15px;margin-bottom:12px;}
+  .sp-head span{color:var(--charcoal);font-weight:400;}
+  .sbars{display:flex;flex-direction:column;gap:7px;max-width:680px;}
+  .sbar{display:grid;grid-template-columns:160px 1fr 60px;gap:10px;align-items:center;font-size:13.5px;}
+  .sbar .track{background:var(--cloud2);height:20px;position:relative;}
+  .sbar .fill{height:100%;}
+  .sbar .pct{text-align:right;font-variant-numeric:tabular-nums;color:var(--charcoal);}
+
+  .trend{margin:34px 0 8px;padding-top:22px;border-top:2px solid var(--black);}
+  .trendgrid{display:grid;grid-template-columns:1fr 1fr;gap:34px;margin-top:16px;}
+  @media(max-width:760px){.trendgrid{grid-template-columns:1fr;}}
+  svg.spark{display:block;width:100%;height:auto;overflow:visible;}
+  .legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:14px;font-size:12.5px;}
+  .legend span{display:inline-flex;align-items:center;gap:6px;}
+  .legend i{width:13px;height:13px;display:inline-block;border-radius:2px;}
+
+  .callouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin:26px 0;}
+  .callout{border:2px solid var(--black);padding:16px;}
+  .callout .big{font-family:var(--serif);font-weight:300;font-size:42px;line-height:1;}
+  .callout .lab{font-family:var(--disp);font-weight:700;font-size:12px;letter-spacing:.05em;text-transform:uppercase;margin-top:8px;color:var(--black);}
+  .callout .sub{font-size:13px;color:var(--charcoal);margin-top:6px;}
+
+  section.prose{margin:44px 0;max-width:820px;}
+  section.prose h2{font-family:var(--disp);font-weight:800;font-size:25px;margin-bottom:14px;border-top:3px solid var(--black);padding-top:14px;}
+  section.prose h3{font-family:var(--disp);font-weight:700;font-size:17px;margin:18px 0 6px;}
+  section.prose p,section.prose li{font-size:15.5px;color:#1d1d1f;margin-bottom:10px;}
+  section.prose ul{padding-left:22px;}
+  .tag{display:inline-block;font-family:var(--disp);font-weight:700;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border:1.5px solid var(--charcoal);color:var(--charcoal);border-radius:3px;margin-bottom:8px;}
+
+  footer{border-top:3px solid var(--black);margin-top:36px;padding:26px 0 60px;font-size:13.5px;color:#333;}
+  footer p{margin-bottom:8px;max-width:840px;}
+  .ai-caution{position:relative;display:inline-block;margin-top:14px;}
+  .ai-caution button{font:600 13px var(--sans);color:#fff;background:#7a2018;border:none;padding:7px 14px;border-radius:6px;cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+  .ai-caution button:hover{background:#6a1813;}
+  .ai-caution .popover{display:none;position:absolute;bottom:calc(100% + 10px);left:0;width:min(460px,86vw);background:#1f2a44;color:#eef1f7;padding:16px 18px;border-radius:8px;font-size:13px;line-height:1.5;box-shadow:0 8px 28px rgba(0,0,0,.28);z-index:50;}
+  .ai-caution.open .popover{display:block;}
+  .ai-caution .popover:after{content:"";position:absolute;top:100%;left:22px;border:8px solid transparent;border-top-color:#1f2a44;}
+  .tooltip{position:fixed;pointer-events:none;background:var(--black);color:#fff;font-size:12.5px;padding:7px 10px;border-radius:5px;max-width:240px;z-index:100;opacity:0;transition:opacity .1s;line-height:1.35;}
+</style>
+</head>
+<body>
+
+<header class="mast">
+  <div class="wrap">
+    <div class="kicker">A crime-data explorer</div>
+    <h1>The justice funnel: from arrest to outcome</h1>
+    <p class="dek">The maps and dashboards track the front of the system — the arrest. This one follows what happens after: of the cases New York City&rsquo;s courts handle, how many are <b>declined, dismissed, pled down, convicted and sentenced</b> — and how that has shifted since New York&rsquo;s bail laws changed on January 1, 2020.</p>
+
+    <div class="viewtabs" id="viewtabs">
+      <button data-view="A" class="active">Outcomes of disposed cases</button>
+      <button data-view="B">The arraignment cohort</button>
+    </div>
+    <p class="viewnote" id="viewnote"></p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="controls" id="controls"></div>
+
+  <div class="chartwrap">
+    <div class="chart-head" id="chartHead"></div>
+    <div class="chart-sub" id="chartSub"></div>
+    <div class="funnelbox"><svg class="funnel" id="funnel" preserveAspectRatio="xMinYMin meet"></svg></div>
+  </div>
+
+  <div class="sentence-panel" id="sentencePanel">
+    <div class="sp-head" id="spHead"></div>
+    <div class="sbars" id="sbars"></div>
+  </div>
+
+  <div class="callouts" id="callouts"></div>
+
+  <div class="trend">
+    <div class="chart-head" id="trendHead"></div>
+    <div class="chart-sub" id="trendSub"></div>
+    <div class="trendgrid" id="trendgrid"></div>
+  </div>
+
+  <section class="prose">
+    <h2>How to read this</h2>
+    <p><span class="tag">Two views, two clocks</span></p>
+    <p><b>Outcomes of disposed cases</b> uses the state&rsquo;s disposition tables: every adult arrest that reached a <i>final</i> outcome in a given year, and what that outcome was. It runs from 2014 to 2024, so it&rsquo;s the view that spans the bail-reform line. But it counts by the year a case <i>ended</i>, not the year the arrest happened &mdash; a 2018 arrest resolved in 2020 lands in 2020.</p>
+    <p><b>The arraignment cohort</b> uses the court system&rsquo;s case-level pretrial data: every case <i>first arraigned</i> in a given year, followed forward. It&rsquo;s the only view that shows what happened at arraignment &mdash; released on recognizance, bail set, remanded &mdash; the actual machinery bail reform changed. But it starts in 2020, so it has no pre-reform baseline, and recent years are incomplete: many 2024 felony cases were still open when the data was last published.</p>
+    <p>Neither view is a literal pipe from one arrest to one sentence. Arrest counts and disposition counts use different denominators and different years; treat the top of each funnel as its own starting universe, not a running total from the one above it.</p>
+  </section>
+
+  <section class="prose">
+    <h2>What the data can and can&rsquo;t say</h2>
+    <ul>
+      <li><b>&ldquo;Pled down&rdquo; is visible.</b> Both sources record the conviction charge separately from the arrest charge, so a felony arrest that ends in a misdemeanor or non-criminal conviction shows up as exactly that &mdash; the single most common way a felony case resolves in conviction here.</li>
+      <li><b>Declined-to-prosecute is essentially a New York City phenomenon</b> in this data, and it captures declinations at or after arraignment &mdash; cases a district attorney declines before arraignment never enter the court files at all, so true declination is undercounted.</li>
+      <li><b>2020 is doubly disrupted.</b> It is both the first year of bail reform and the year COVID closed the courts. The state warns against reading 2020 outcomes as a normal year; where you want a clean before/after, compare 2019 with 2021 and later.</li>
+      <li><b>Bail reform is not one event.</b> The law took effect January 1, 2020 and was amended in 2020, 2022 and 2023. A single &ldquo;before and after&rdquo; line simplifies a moving target.</li>
+      <li><b>Recent felony cases are still open.</b> In the arraignment-cohort view, a large share of the newest felony cases had no final disposition when the data was published; their outcomes are shown as pending, not as dismissals or acquittals.</li>
+    </ul>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p id="srcline"></p>
+    <p>Full methodology, category mapping and build code: see <a href="https://github.com/joshgreenman1973">the repository</a> and <code>METHODOLOGY.md</code>.</p>
+    <span class="ai-caution" id="aiCaution">
+      <button type="button" aria-expanded="false">And please read this AI caution.</button>
+      <span class="popover">Everything substantive &mdash; the concept, the two-view design that keeps the data&rsquo;s two different clocks honest, and the editorial judgment &mdash; was handled by the author (a human). The coding and data assembly were primarily in the hands of Anthropic&rsquo;s Claude and Claude Code, under close direction. Quality controls included parsing only the state&rsquo;s own published tables and the court system&rsquo;s own case files, spot-checking parsed figures against the source spreadsheets cell by cell, following transferred felony cases by their case identifier so none is double-counted, and labeling every limit &mdash; disposition-year versus arrest-cohort, the 2020 COVID disruption, pending cases &mdash; on the page itself. Nevertheless, the risks of using AI remain, and we&rsquo;d be grateful to learn of any red flags, errors or omissions you notice.</span>
+    </span>
+  </div>
+</footer>
+
+<div class="tooltip" id="tip"></div>
+
+<script>
+const F = {
+  n: v => v.toLocaleString("en-US"),
+  pct: (a,b) => b ? (100*a/b) : 0,
+  pct1: (a,b) => b ? (100*a/b).toFixed(1)+"%" : "—",
+};
+const STATE = { view:"A", borough:"New York City", sev:"All", year:null };
+let DISPO, COHORT, ARREST;
+
+// ---- palette: blues = case ends without conviction, warm = conviction/consequence ----
+const C = {
+  declined:"#217ebe", dismissed:"#3a6ea5", acd:"#6d97c4", diverted:"#9b9fbc",
+  covered:"#b9c3d6", acquitted:"#7fbf7a", other:"#cdcfde",
+  convicted:"#ff7c53",
+  conv_felony:"#d2232a", conv_misd:"#ff7c53", conv_noncrim:"#e0e883", conv_unknown:"#b9b9ba",
+  // release
+  ror:"#57aa4a", nmr:"#7cbf4e", disposed_arraign:"#9b9fbc", bail_posted:"#f6b26b",
+  bail_not_posted:"#ed8b4e", remand:"#d2232a", rel_unknown:"#cdcfde",
+  // outcome (View B)
+  plea:"#ff7c53", trial_guilty:"#d2232a", dismissed_b:"#3a6ea5", acd_b:"#6d97c4",
+  acquitted_b:"#7fbf7a", outcome_other:"#cdcfde", pending:"#c9ccce", transfer_unknown:"#e2e3e2",
+};
+const OUTCOME_ORDER = ["convicted","declined","dismissed","acd","diverted","covered","acquitted","other"];
+const OUTCOME_LABEL = {declined:"DA declined",dismissed:"Dismissed",acd:"Dismissed (ACD)",diverted:"Diverted",covered:"Covered by another case",acquitted:"Acquitted",other:"Other favorable",convicted:"Convicted & sentenced"};
+const CONV_ORDER = ["conv_felony","conv_misd","conv_noncrim"];
+const CONV_LABEL = {conv_felony:"Felony conviction",conv_misd:"Misdemeanor conviction",conv_noncrim:"Non-criminal conviction",conv_unknown:"Unknown level"};
+const SENT_ORDER_A = ["prison","jail","time_served","jail_probation","probation","fine","cond_discharge","sent_other"];
+const SENT_LABEL = {prison:"Prison",jail:"Jail",time_served:"Time served",jail_probation:"Jail + probation",probation:"Probation",fine:"Fine",cond_discharge:"Conditional discharge",sent_other:"Other",incarceration:"Incarceration",sent_none:"No sentence recorded"};
+const SENT_COLOR = {prison:"#d2232a",incarceration:"#d2232a",jail:"#ed5236",time_served:"#ff7c53",jail_probation:"#f6955b",probation:"#217ebe",fine:"#6d97c4",cond_discharge:"#dde44c",sent_other:"#b9b9ba",sent_none:"#e2e3e2"};
+// View B release + outcome
+const REL_ORDER = ["ror","nmr","disposed_arraign","bail_posted","bail_not_posted","remand","rel_unknown"];
+const REL_LABEL = {ror:"Released on recognizance",nmr:"Nonmonetary release",disposed_arraign:"Disposed at arraignment",bail_posted:"Bail set, posted",bail_not_posted:"Bail set, not posted",remand:"Remanded",rel_unknown:"Release unknown"};
+const OUTB_ORDER = ["plea","trial_guilty","dismissed","acd","acquitted","outcome_other","transfer_unknown","pending"];
+const OUTB_LABEL = {plea:"Guilty plea",trial_guilty:"Convicted at trial",dismissed:"Dismissed",acd:"Dismissed (ACD)",acquitted:"Acquitted",outcome_other:"Other",transfer_unknown:"Sent to grand jury (outcome not in data)",pending:"Still pending / open"};
+const OUTB_COLOR = {plea:"#ff7c53",trial_guilty:"#d2232a",dismissed:"#3a6ea5",acd:"#6d97c4",acquitted:"#7fbf7a",outcome_other:"#cdcfde",transfer_unknown:"#e2e3e2",pending:"#c9ccce"};
+
+const $ = id => document.getElementById(id);
+const el = (t,a={}) => { const e=document.createElementNS("http://www.w3.org/2000/svg",t); for(const k in a) e.setAttribute(k,a[k]); return e; };
+
+Promise.all([
+  fetch("data/dispositions.json").then(r=>r.json()),
+  fetch("data/cohorts.json").then(r=>r.json()),
+  fetch("data/arrests.json").then(r=>r.json()),
+]).then(([d,c,a])=>{ DISPO=d; COHORT=c; ARREST=a; init(); });
+
+function init(){
+  $("viewtabs").querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+    STATE.view=b.dataset.view;
+    $("viewtabs").querySelectorAll("button").forEach(x=>x.classList.toggle("active",x===b));
+    STATE.year=null; buildControls(); render();
+  }));
+  buildControls(); render();
+  const ac=$("aiCaution");
+  ac.querySelector("button").addEventListener("click",()=>{ac.classList.toggle("open");ac.querySelector("button").setAttribute("aria-expanded",ac.classList.contains("open"));});
+  document.addEventListener("click",e=>{if(!ac.contains(e.target))ac.classList.remove("open");});
+}
+
+function years(){
+  if(STATE.view==="A"){
+    return Object.keys(DISPO.data["New York City"]).map(Number).sort((a,b)=>a-b);
+  }
+  return [...new Set(Object.keys(COHORT.cohorts).map(k=>+k.split("|")[0]))].sort((a,b)=>a-b);
+}
+function boroughs(){ return ["New York City","The Bronx","Brooklyn","Manhattan","Queens","Staten Island"]; }
+
+function buildControls(){
+  const ys=years();
+  // sensible default year: View A newest full year; View B most-complete recent cohort (2022)
+  if(STATE.year===null) STATE.year = STATE.view==="A" ? ys[ys.length-1] : (ys.includes(2022)?2022:ys[ys.length-1]);
+  const sevs = STATE.view==="A" ? ["All","Felony","Misdemeanor"] : ["All","Felony","Misdemeanor"];
+  const c=$("controls"); c.innerHTML="";
+  c.appendChild(seg("Borough", boroughs(), STATE.borough, v=>{STATE.borough=v;render();}, x=>x==="New York City"?"Citywide":x));
+  c.appendChild(seg("Charge at arrest", sevs, STATE.sev, v=>{STATE.sev=v;render();}));
+  c.appendChild(seg("Year", ys.map(String), String(STATE.year), v=>{STATE.year=+v;render();}, null, "yearseg"));
+  $("viewnote").innerHTML = STATE.view==="A"
+    ? "<b>Disposition year basis.</b> Every adult arrest that reached a final outcome that year. Spans 2014&ndash;2024. Source: state disposition tables."
+    : "<b>Arraignment cohort basis.</b> Every case first arraigned that year, followed forward. Starts 2020; recent felony cases may still be open. Source: court pretrial case files.";
+}
+
+function seg(label, opts, active, cb, fmt, cls=""){
+  const wrap=document.createElement("div"); wrap.className="ctl";
+  const l=document.createElement("label"); l.textContent=label; wrap.appendChild(l);
+  const s=document.createElement("div"); s.className="seg "+cls;
+  opts.forEach(o=>{
+    const b=document.createElement("button"); b.textContent=fmt?fmt(o):o;
+    if(o===active) b.classList.add("active");
+    b.addEventListener("click",()=>cb(o)); s.appendChild(b);
+  });
+  wrap.appendChild(s); return wrap;
+}
+
+// ---------- data assembly per view ----------
+function dispoNode(){
+  const g=DISPO.data[STATE.borough]; if(!g) return null;
+  const y=g[STATE.year]; if(!y) return null;
+  const merge=(...keys)=>{ const o={}; keys.forEach(sv=>{const b=y[sv];if(b)for(const k in b)o[k]=(o[k]||0)+b[k];}); return o; };
+  return STATE.sev==="All" ? merge("Felony","Misdemeanor") : (y[STATE.sev]||null);
+}
+function cohortNode(){
+  return COHORT.cohorts[`${STATE.year}|${STATE.borough}|${STATE.sev}`]||null;
+}
+
+function render(){
+  // reflect year default possibly changed
+  buildControlsActiveState();
+  if(STATE.view==="A") renderA(); else renderB();
+  $("srcline").innerHTML = STATE.view==="A"
+    ? 'Source: <a href="https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/index.htm">DCJS Dispositions of Adult Arrests (18 and Older)</a>, county tables, disposition years 2014&ndash;2024 (2014&ndash;2019 via Internet Archive). Accessed July 10, 2026. Counts are of cases reaching final disposition each year.'
+    : 'Source: <a href="https://ww2.nycourts.gov/pretrial-release-data-33136">NYS Office of Court Administration, Pretrial Release Data</a>, case-level files by arraignment year 2020&ndash;2024 (via Internet Archive). Accessed July 10, 2026. Cases first arraigned each year, followed to disposition.';
+}
+function buildControlsActiveState(){
+  const segs=$("controls").querySelectorAll(".seg");
+}
+
+// ===== VIEW A: dispositions =====
+function renderA(){
+  const d=dispoNode();
+  if(!d || !d.total){ noData(); return; }
+  const total=d.total;
+  const outcomes=OUTCOME_ORDER.filter(k=>d[k]>0).map(k=>({id:k,label:OUTCOME_LABEL[k],value:d[k],color:C[k]}));
+  const convicted=d.convicted||0;
+  const convs=CONV_ORDER.filter(k=>d[k]>0).map(k=>({id:k,label:CONV_LABEL[k],value:d[k],color:C[k]}));
+
+  const boroLab = STATE.borough==="New York City"?"New York City":STATE.borough;
+  const sevLab = STATE.sev==="All"?"felony and misdemeanor":STATE.sev.toLowerCase();
+  const convRate=F.pct(convicted,total), declRate=F.pct(d.declined||0,total), dismRate=F.pct((d.dismissed||0)+(d.acd||0)+(d.diverted||0),total);
+  $("chartHead").innerHTML = `Of ${F.n(total)} ${sevLab} cases disposed in ${boroLab} in ${STATE.year}, <span class="hl">${convRate.toFixed(0)}%</span> ended in conviction.`;
+  $("chartSub").textContent = `${declRate.toFixed(0)}% were declined by prosecutors, ${dismRate.toFixed(0)}% were dismissed. Each ribbon is proportional to the number of cases.`;
+
+  const columns=[
+    [{id:"total",label:"Cases disposed",value:total,color:"#050507"}],
+    outcomes,
+    convs,
+  ];
+  const colHeads=["Disposed","Outcome","Conviction level"];
+  const links=[];
+  outcomes.forEach(o=>links.push({source:"total",target:o.id,value:o.value}));
+  convs.forEach(cv=>links.push({source:"convicted",target:cv.id,value:cv.value}));
+  drawSankey(columns,links,colHeads);
+  sentencePanel(d, convicted, "Of the "+F.n(convicted)+" convictions, the most serious sentence was:");
+  calloutsA(d,total);
+  trendA();
+}
+
+// ===== VIEW B: arraignment cohort =====
+function renderB(){
+  const a=cohortNode();
+  if(!a || !a.n){ noData(); return; }
+  const total=a.n;
+  const rels=REL_ORDER.filter(k=>a.release[k]>0).map(k=>({id:k,label:REL_LABEL[k],value:a.release[k],color:C[k]}));
+  // outcome totals
+  const outT={}; for(const k in a.rel_out){const o=k.split("|")[1]; outT[o]=(outT[o]||0)+a.rel_out[k];}
+  const outs=OUTB_ORDER.filter(k=>outT[k]>0).map(k=>({id:"o_"+k,label:OUTB_LABEL[k],value:outT[k],color:OUTB_COLOR[k]}));
+  const columns=[
+    [{id:"arr",label:"Arraigned",value:total,color:"#050507"}],
+    rels,
+    outs,
+  ];
+  const colHeads=["Arraigned","Release decision","Case outcome"];
+  const links=[];
+  rels.forEach(r=>links.push({source:"arr",target:r.id,value:r.value}));
+  for(const k in a.rel_out){ const [r,o]=k.split("|"); if(a.release[r]>0&&outT[o]>0) links.push({source:r,target:"o_"+o,value:a.rel_out[k]}); }
+
+  const boroLab=STATE.borough==="New York City"?"New York City":STATE.borough;
+  const sevLab=STATE.sev==="All"?"":(STATE.sev.toLowerCase()+" ");
+  const convicted=(outT.plea||0)+(outT.trial_guilty||0);
+  const pendingShare=F.pct(outT.pending||0,total);
+  const bailSet=(a.release.bail_posted||0)+(a.release.bail_not_posted||0);
+  $("chartHead").innerHTML = `Of ${F.n(total)} ${sevLab}cases arraigned in ${boroLab} in ${STATE.year}, bail was set in <span class="hl">${F.pct(bailSet,total).toFixed(0)}%</span>.`;
+  $("chartSub").textContent = `${F.pct(convicted,total).toFixed(0)}% ended in a conviction; ${pendingShare.toFixed(0)}% were still open when the data was published${pendingShare>15?" — read recent-year outcomes with that in mind.":"."}`;
+  drawSankey(columns,links,colHeads);
+
+  // conviction level + sentence from out_conv / conv_sent
+  const convLevels={}; for(const k in a.out_conv){const cv=k.split("|")[1]; convLevels[cv]=(convLevels[cv]||0)+a.out_conv[k];}
+  const sent={}; for(const k in a.conv_sent){const s=k.split("|")[1]; sent[s]=(sent[s]||0)+a.conv_sent[k];}
+  convLevelPanelB(convLevels, convicted, sent);
+  calloutsB(a,total,outT);
+  trendB();
+}
+
+function noData(){
+  $("funnel").innerHTML=""; $("chartHead").textContent="No cases in this slice.";
+  $("chartSub").textContent="Staten Island felony counts in some years are very small; try Citywide or another year.";
+  $("sbars").innerHTML=""; $("spHead").textContent=""; $("callouts").innerHTML=""; $("trendgrid").innerHTML="";
+  $("trendHead").textContent="";$("trendSub").textContent="";
+}
+
+// ---------- generic Sankey ----------
+function drawSankey(columns, links, colHeads){
+  const svg=$("funnel"); svg.innerHTML="";
+  const marginL=14, marginR=190, nodeW=17;
+  const W=1000, padT=52, padB=30;
+  const gap=7, minH=2.5, H=560;
+  const nCols=columns.length;
+  const innerW=W-marginL-nodeW;
+  const colGap=innerW/(nCols-1);
+  const avail=H-padT-padB;
+  const maxNodesInCol=Math.max(...columns.map(c=>c.length));
+  const maxTotal=Math.max(...columns.map(col=>col.reduce((s,n)=>s+n.value,0)));
+  const scale=(avail-(maxNodesInCol-1)*gap)/maxTotal;
+  svg.setAttribute("viewBox",`0 0 ${W+marginR} ${H}`);
+
+  const pos={};
+  columns.forEach((col,ci)=>{
+    const colH=col.reduce((s,n)=>s+Math.max(minH,n.value*scale),0)+(col.length-1)*gap;
+    let y=padT+(avail-colH)/2;
+    const x=marginL+ci*colGap;
+    col.forEach(n=>{
+      const h=Math.max(minH,n.value*scale);
+      pos[n.id]={x,y,h,node:n,ci,inOff:0,outOff:0};
+      y+=h+gap;
+    });
+  });
+
+  // column heads
+  columns.forEach((col,ci)=>{
+    const x=marginL+ci*colGap+(ci===0?0:nodeW+7);
+    const t=el("text",{x, y:24, "text-anchor":"start", class:"colhead"});
+    t.textContent=colHeads[ci]; svg.appendChild(t);
+  });
+
+  // links (under nodes)
+  links.forEach(lk=>{
+    const s=pos[lk.source], t=pos[lk.target]; if(!s||!t) return;
+    const th=Math.max(0.6,lk.value*scale);
+    const x0=s.x+nodeW, x1=t.x;
+    const y0=s.y+s.outOff+th/2, y1=t.y+t.inOff+th/2;
+    s.outOff+=th; t.inOff+=th;
+    const xm=(x0+x1)/2;
+    svg.appendChild(el("path",{d:`M${x0},${y0-th/2} C${xm},${y0-th/2} ${xm},${y1-th/2} ${x1},${y1-th/2} L${x1},${y1+th/2} C${xm},${y1+th/2} ${xm},${y0+th/2} ${x0},${y0+th/2} Z`,
+      fill:t.node.color, opacity:0.32, stroke:"none"}));
+  });
+
+  const totalRef=columns[0].reduce((s,n)=>s+n.value,0);
+
+  // nodes
+  Object.values(pos).forEach(p=>{
+    const n=p.node;
+    const rect=el("rect",{x:p.x,y:p.y,width:nodeW,height:p.h,fill:n.color,rx:1});
+    rect.style.cursor="default";
+    rect.addEventListener("mousemove",e=>showTip(e,`${n.label}: ${F.n(n.value)} (${F.pct1(n.value,totalRef)} of ${F.n(totalRef)})`));
+    rect.addEventListener("mouseleave",hideTip);
+    svg.appendChild(rect);
+  });
+
+  // ---- labels with per-column de-collision ----
+  columns.forEach((col,ci)=>{
+    if(ci===0){
+      // single total node: label above the node
+      const p=pos[col[0].id];
+      const cx=p.x+nodeW/2;
+      const g=el("g",{});
+      const t1=el("text",{x:p.x,y:p.y-16,"text-anchor":"start",class:"nlabel","font-size":13});
+      t1.textContent=col[0].label; g.appendChild(t1);
+      const t2=el("text",{x:p.x,y:p.y-3,"text-anchor":"start",class:"nval","font-size":11});
+      t2.textContent=`${F.n(col[0].value)} · 100%`; g.appendChild(t2);
+      svg.appendChild(g);
+      return;
+    }
+    // desired label centers = node centers; nudge to keep >= minGap apart
+    const minGap=20;
+    const items=col.map(n=>({n,p:pos[n.id],c:pos[n.id].y+pos[n.id].h/2})).sort((a,b)=>a.c-b.c);
+    for(let i=1;i<items.length;i++){ if(items[i].c - items[i-1].c < minGap) items[i].c = items[i-1].c + minGap; }
+    // if pushed past bottom, shift whole block up
+    const overflow=(items[items.length-1].c) - (H-padB+6);
+    if(overflow>0) items.forEach(it=>it.c-=overflow);
+    const lx=items[0].p.x+nodeW+8;
+    items.forEach(it=>{
+      const showVal=it.n.value>=totalRef*0.012;
+      const g=el("g",{});
+      const t1=el("text",{x:lx,y:it.c-(showVal?5:0),"text-anchor":"start",class:"nlabel","font-size":12});
+      t1.textContent=it.n.label.length>32?it.n.label.slice(0,31)+"…":it.n.label;
+      g.appendChild(t1);
+      if(showVal){
+        const t2=el("text",{x:lx,y:it.c+8,"text-anchor":"start",class:"nval","font-size":11});
+        t2.textContent=`${F.n(it.n.value)} · ${F.pct1(it.n.value,totalRef)}`;
+        g.appendChild(t2);
+      }
+      // connector if label nudged away from node center
+      const nodeCy=it.p.y+it.p.h/2;
+      if(Math.abs(nodeCy-it.c)>4){
+        svg.appendChild(el("line",{x1:it.p.x+nodeW,y1:nodeCy,x2:lx-3,y2:it.c,stroke:"#cccccc","stroke-width":0.75}));
+      }
+      svg.appendChild(g);
+    });
+  });
+}
+
+// ---------- sentence / conviction panels ----------
+function sentencePanel(d, denom, headline){
+  $("spHead").innerHTML = denom? headline : "";
+  const box=$("sbars"); box.innerHTML="";
+  if(!denom) return;
+  const rows=SENT_ORDER_A.map(k=>({k,v:d[k]||0})).filter(r=>r.v>0).sort((a,b)=>b.v-a.v);
+  const max=Math.max(...rows.map(r=>r.v),1);
+  rows.forEach(r=>box.appendChild(sbar(SENT_LABEL[r.k],r.v,denom,max,SENT_COLOR[r.k])));
+}
+function convLevelPanelB(levels, convicted, sent){
+  $("spHead").innerHTML = convicted ? `Of the ${F.n(convicted)} convictions, the conviction level and sentence were:` : "";
+  const box=$("sbars"); box.innerHTML="";
+  if(!convicted) return;
+  // conviction level rows
+  const head1=document.createElement("div"); head1.style.cssText="font:700 12px var(--disp);letter-spacing:.05em;text-transform:uppercase;color:var(--charcoal);margin-bottom:2px;";
+  head1.textContent="Conviction level"; box.appendChild(head1);
+  const lv=CONV_ORDER.concat("conv_unknown").map(k=>({k,v:levels[k]||0})).filter(r=>r.v>0);
+  const maxL=Math.max(...lv.map(r=>r.v),1);
+  lv.forEach(r=>box.appendChild(sbar(CONV_LABEL[r.k],r.v,convicted,maxL,C[r.k])));
+  const head2=document.createElement("div"); head2.style.cssText="font:700 12px var(--disp);letter-spacing:.05em;text-transform:uppercase;color:var(--charcoal);margin:12px 0 2px;";
+  head2.textContent="Most serious sentence"; box.appendChild(head2);
+  const order=["incarceration","time_served","probation","fine","cond_discharge","sent_other","sent_none"];
+  const sv=order.map(k=>({k,v:sent[k]||0})).filter(r=>r.v>0);
+  const maxS=Math.max(...sv.map(r=>r.v),1);
+  sv.forEach(r=>box.appendChild(sbar(SENT_LABEL[r.k]||r.k,r.v,convicted,maxS,SENT_COLOR[r.k]||"#b9b9ba")));
+}
+function sbar(label,v,denom,max,color){
+  const row=document.createElement("div"); row.className="sbar";
+  const l=document.createElement("div"); l.textContent=label;
+  const track=document.createElement("div"); track.className="track";
+  const fill=document.createElement("div"); fill.className="fill"; fill.style.width=(100*v/max)+"%"; fill.style.background=color;
+  track.appendChild(fill);
+  const pct=document.createElement("div"); pct.className="pct"; pct.textContent=F.pct1(v,denom);
+  pct.title=F.n(v)+" cases";
+  row.appendChild(l); row.appendChild(track); row.appendChild(pct);
+  return row;
+}
+
+// ---------- callouts ----------
+function callout(big,lab,sub){
+  const d=document.createElement("div"); d.className="callout";
+  d.innerHTML=`<div class="big">${big}</div><div class="lab">${lab}</div><div class="sub">${sub}</div>`;
+  return d;
+}
+function calloutsA(d,total){
+  const box=$("callouts"); box.innerHTML="";
+  const conv=d.convicted||0;
+  const pled=(d.conv_misd||0)+(d.conv_noncrim||0);
+  box.appendChild(callout(F.pct1(d.declined||0,total),"Declined by prosecutors","DA declined to prosecute"));
+  box.appendChild(callout(F.pct1((d.dismissed||0)+(d.acd||0),total),"Dismissed","Including adjournments in contemplation of dismissal"));
+  if(STATE.sev!=="Misdemeanor") box.appendChild(callout(F.pct1(pled,conv),"Of convictions, pled below the arrest charge","Felony arrests ending in a misdemeanor or non-criminal conviction"));
+  box.appendChild(callout(F.pct1((d.prison||0)+(d.jail||0)+(d.time_served||0)+(d.jail_probation||0),conv),"Of convictions, a jail or prison sentence","The rest: probation, fines or conditional discharge"));
+}
+function calloutsB(a,total,outT){
+  const box=$("callouts"); box.innerHTML="";
+  const bailSet=(a.release.bail_posted||0)+(a.release.bail_not_posted||0);
+  const released=(a.release.ror||0)+(a.release.nmr||0);
+  box.appendChild(callout(F.pct1(released,total),"Released without bail","On recognizance or under nonmonetary conditions"));
+  box.appendChild(callout(F.pct1(a.release.bail_not_posted||0,total),"Bail set but not posted","Detained at arraignment because bail was unaffordable"));
+  box.appendChild(callout(F.pct1(a.release.remand||0,total),"Remanded","Held without bail"));
+  box.appendChild(callout(F.pct1(outT.pending||0,total),"Still pending","No final disposition when the data was published"));
+}
+
+// ---------- trend strips ----------
+function trendA(){
+  $("trendHead").innerHTML = "How the shape changed since bail reform";
+  $("trendSub").textContent = "Share of disposed cases by outcome, "+(STATE.borough==="New York City"?"citywide":STATE.borough)+", "+(STATE.sev==="All"?"all charges":STATE.sev.toLowerCase()+" charges")+". Dotted line: Jan 2020 (bail reform and COVID).";
+  const g=DISPO.data[STATE.borough]; const ys=Object.keys(g).map(Number).sort((a,b)=>a-b);
+  const series=(keys)=>ys.map(y=>{const b=STATE.sev==="All"?merged(g[y]):(g[y][STATE.sev]||{}); const tot=b.total||0; const v=keys.reduce((s,k)=>s+(b[k]||0),0); return {y,v:F.pct(v,tot)};});
+  const conv=series(["convicted"]), decl=series(["declined"]), dism=series(["dismissed","acd","diverted"]);
+  $("trendgrid").innerHTML="";
+  $("trendgrid").appendChild(sparkPanel("Convicted & sentenced",[{s:conv,c:"#ff7c53",lab:"Convicted"}],ys));
+  $("trendgrid").appendChild(sparkPanel("Declined & dismissed",[{s:decl,c:"#217ebe",lab:"DA declined"},{s:dism,c:"#3a6ea5",lab:"Dismissed"}],ys));
+}
+function merged(yObj){const o={};["Felony","Misdemeanor"].forEach(sv=>{const b=yObj[sv];if(b)for(const k in b)o[k]=(o[k]||0)+b[k];});return o;}
+function trendB(){
+  $("trendHead").innerHTML = "The arraignment picture, 2020 onward";
+  $("trendSub").textContent = "Share of arraigned cases by release decision, "+(STATE.borough==="New York City"?"citywide":STATE.borough)+", "+(STATE.sev==="All"?"all charges":STATE.sev.toLowerCase()+" charges")+". Later years include cases still pending.";
+  const ys=[...new Set(Object.keys(COHORT.cohorts).map(k=>+k.split("|")[0]))].sort((a,b)=>a-b);
+  const rel=(keys)=>ys.map(y=>{const a=COHORT.cohorts[`${y}|${STATE.borough}|${STATE.sev}`]; if(!a)return{y,v:null}; const v=keys.reduce((s,k)=>s+(a.release[k]||0),0); return {y,v:F.pct(v,a.n)};});
+  const released=rel(["ror","nmr"]), bail=rel(["bail_posted","bail_not_posted"]), remand=rel(["remand"]);
+  $("trendgrid").innerHTML="";
+  $("trendgrid").appendChild(sparkPanel("Released without bail",[{s:released,c:"#57aa4a",lab:"ROR + nonmonetary"}],ys,false));
+  $("trendgrid").appendChild(sparkPanel("Bail set or remanded",[{s:bail,c:"#ed8b4e",lab:"Bail set"},{s:remand,c:"#d2232a",lab:"Remanded"}],ys,false));
+}
+function sparkPanel(title,seriesList,ys,showReformLine=true){
+  const wrap=document.createElement("div");
+  const W=460,H=210,pL=34,pR=64,pT=24,pB=26;
+  const allV=seriesList.flatMap(s=>s.s.map(p=>p.v)).filter(v=>v!=null);
+  const maxV=Math.max(...allV,5)*1.1;
+  const x=y=>pL+(ys.indexOf(y))/(ys.length-1)*(W-pL-pR);
+  const yv=v=>pT+(1-v/maxV)*(H-pT-pB);
+  let svg=`<div style="font:700 15px var(--disp);margin-bottom:2px;">${title}</div><svg class="spark" viewBox="0 0 ${W} ${H}">`;
+  // gridlines
+  for(let g=0;g<=maxV;g+=Math.ceil(maxV/4/5)*5){ if(g>maxV)break; svg+=`<line x1="${pL}" x2="${W-pR}" y1="${yv(g)}" y2="${yv(g)}" stroke="#dddddd"/><text x="${pL-6}" y="${yv(g)+3}" text-anchor="end" font-size="10" fill="#707175">${g}%</text>`; }
+  if(showReformLine){ const rx=pL+(( (2020-ys[0]) - 0.5)/(ys.length-1))*(W-pL-pR); svg+=`<line x1="${rx}" x2="${rx}" y1="${pT}" y2="${H-pB}" stroke="#050507" stroke-dasharray="2 3"/><text x="${rx+3}" y="${pT+9}" font-size="9" fill="#050507" font-weight="700">BAIL REFORM / COVID</text>`; }
+  seriesList.forEach(ser=>{
+    const pts=ser.s.filter(p=>p.v!=null);
+    const dpath=pts.map((p,i)=>(i?"L":"M")+x(p.y)+","+yv(p.v)).join(" ");
+    svg+=`<path d="${dpath}" fill="none" stroke="${ser.c}" stroke-width="2.5"/>`;
+    pts.forEach(p=>{ svg+=`<circle cx="${x(p.y)}" cy="${yv(p.v)}" r="2.6" fill="${ser.c}"/>`; });
+    const last=pts[pts.length-1];
+    svg+=`<text x="${x(last.y)+6}" y="${yv(last.v)+3}" font-size="11" font-weight="700" fill="${ser.c}">${ser.lab} ${last.v.toFixed(0)}%</text>`;
+  });
+  // x labels (first, 2020, last)
+  [ys[0],2020,ys[ys.length-1]].forEach(y=>{ if(ys.includes(y)) svg+=`<text x="${x(y)}" y="${H-8}" text-anchor="middle" font-size="10" fill="#707175">${y}</text>`; });
+  svg+="</svg>";
+  wrap.innerHTML=svg;
+  return wrap;
+}
+
+// ---------- tooltip ----------
+function showTip(e,txt){const t=$("tip");t.textContent=txt;t.style.opacity="1";t.style.left=Math.min(e.clientX+14,window.innerWidth-250)+"px";t.style.top=(e.clientY+14)+"px";}
+function hideTip(){$("tip").style.opacity="0";}
+</script>
+</body>
+</html>

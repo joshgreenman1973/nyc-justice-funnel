@@ -1,0 +1,45 @@
+name: Refresh data
+
+# DCJS dispositions and DCJS arrests update on stable public endpoints and are
+# refreshed monthly here. The OCA cohort files are ~800MB and only change when a
+# new arraignment year is published (roughly annually) or as pending cases fill
+# in, so cohorts.json is rebuilt on demand (workflow_dispatch), not on schedule.
+
+on:
+  schedule:
+    - cron: "0 12 1 * *"   # 1st of each month, 8am New York
+  workflow_dispatch:
+    inputs:
+      rebuild_cohorts:
+        description: "Also rebuild cohorts.json (downloads ~800MB from the Internet Archive)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install xlrd==2.0.2
+      - name: Rebuild dispositions + arrests
+        run: |
+          python3 build_dispositions.py
+          python3 build_arrests.py
+      - name: Rebuild cohorts (on demand)
+        if: ${{ github.event.inputs.rebuild_cohorts == 'true' }}
+        run: python3 build_cohorts.py
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/dispositions.json data/arrests.json data/cohorts.json 2>/dev/null || true
+          git diff --cached --quiet && echo "No changes" || {
+            git commit -m "Data refresh: $(date -u +%F)"
+            git push
+          }
