@@ -367,7 +367,7 @@ function render(){
   buildControlsActiveState();
   if(STATE.view==="A") renderA(); else renderB();
   $("srcline").innerHTML = STATE.view==="A"
-    ? 'Source: <a href="https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/index.htm">DCJS Dispositions of Adult Arrests (18 and Older)</a>, county tables, disposition years 2014&ndash;2024 (2014&ndash;2019 via Internet Archive). Accessed July 10, 2026. Counts are of cases reaching final disposition each year.'
+    ? 'Source: <a href="https://criminaljustice.ny.gov/dispositions-adult-arrests">DCJS Dispositions of Adult Arrests (18 and Older)</a>, county tables, disposition years 2014&ndash;2024 (2014&ndash;2019 via Internet Archive). Accessed July 10, 2026. Counts are of cases reaching final disposition each year.'
     : 'Source: <a href="https://ww2.nycourts.gov/pretrial-release-data-33136">NYS Office of Court Administration, Pretrial Release Data</a>, case-level files by arraignment year 2020&ndash;2024 (via Internet Archive). Accessed July 10, 2026. Cases first arraigned each year, followed to disposition.';
 }
 function buildControlsActiveState(){

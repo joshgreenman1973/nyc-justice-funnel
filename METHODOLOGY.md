@@ -10,11 +10,11 @@ An interactive explorer of what happens to criminal cases in New York City after
 
 ### View A — "Outcomes of disposed cases" (2014–2024)
 
-**Source:** New York State Division of Criminal Justice Services (DCJS), [Dispositions of Adult Arrests (18 and Older)](https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/index.htm), the county-level spreadsheets.
+**Source:** New York State Division of Criminal Justice Services (DCJS), [Dispositions of Adult Arrests (18 and Older)](https://criminaljustice.ny.gov/dispositions-adult-arrests), the county-level spreadsheets ([by county](https://criminaljustice.ny.gov/adult-arrests-by-county)).
 
 Every adult arrest that reached a **final disposition** in a given year, and what that disposition was, split by felony vs misdemeanor top arrest charge. This is the view that spans the bail-reform line.
 
-**Critical semantics (from the DCJS [data notes](https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/dispositiondatanotes.pdf)):**
+**Critical semantics (from the DCJS data notes, published on the [dispositions page](https://criminaljustice.ny.gov/dispositions-adult-arrests)):**
 - Counts are by **disposition year, not arrest year** — "an arrest from 2018 that was disposed in 2019 would be displayed in 2019." A funnel for year X is *cases that ended in X*, not *arrests made in X*.
 - Only fully disposed arrests appear; cases still open, with interim dispositions, or convicted-but-not-yet-sentenced are excluded from the denominator.
 - Outcomes are categorized by the **most serious charge at arrest**.
@@ -22,7 +22,7 @@ Every adult arrest that reached a **final disposition** in a given year, and wha
 - "DA Declined to Prosecute" "primarily occurs in the five counties/boroughs of New York City."
 
 **Editions and how we assembled 2014–2024.** DCJS publishes a rolling five-year window. We combined three editions, taking each year from exactly one edition:
-- **2020–2024** from the current edition (criminaljustice.ny.gov, file dated May 2025, accessed 2026-07-10).
+- **2020–2024** from the current edition (file dated May 2025). DCJS retired its old `/crimnet/ojsa/dispos/` file paths in a 2026 site rebuild; since September 2026 the build downloads the county workbooks from the state asset library behind the [by-county page](https://criminaljustice.ny.gov/adult-arrests-by-county), looked up through that page's own search endpoint on each run. The workbooks it served on Sept. 12, 2026 are byte-identical to the ones downloaded from the old paths on July 10, 2026. The Aug. 1, 2026 refresh had pulled a slightly different copy from the old paths (citywide totals within 0.3%); no copy matching it is published now, so the site reflects the file DCJS currently serves.
 - **2017–2019** from the June 2022 edition via the Internet Archive.
 - **2014–2016** from the February 2020 edition via the Internet Archive.
 

@@ -5,23 +5,32 @@
 # Data sources:
 #   New York State Division of Criminal Justice Services (DCJS),
 #   "Dispositions of Adult Arrests (18 and Older)" county spreadsheets:
-#   https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/index.htm
-#   - Current edition: disposition years 2020-2024 (accessed 2026-07-10)
+#   https://criminaljustice.ny.gov/dispositions-adult-arrests
+#   county tables: https://criminaljustice.ny.gov/adult-arrests-by-county
+#   - Current edition: disposition years 2020-2024 (file dated May 2025)
 #   - June 2022 edition via Wayback Machine: disposition years 2017-2021
 #     (we use 2017-2019 from it)
 #   - February 2020 edition via Wayback Machine: disposition years 2014-2018
 #     (we use 2014-2016 from it)
+#   DCJS rebuilt its website in 2026 and retired the /crimnet/ojsa/dispos/ file
+#   tree (404 since at least 2026-09-01). The county workbooks now live in the
+#   state's digital asset library behind the "by County / Region" page, which
+#   lists them through its own search endpoint (/dam_api/search, category
+#   "DCJS/DCJS Adult Arrests County"). The current edition is resolved through
+#   that endpoint on every run; the files it served on 2026-09-12 are
+#   byte-identical to the May 2025 workbooks previously at /crimnet/ojsa/dispos/.
 # Description: parses the felony and misdemeanor blocks of each borough's
 #   spreadsheet in each edition, maps category labels across editions to a
 #   canonical vocabulary, and writes data/dispositions.json.
 #   Counts are of arrests REACHING FINAL DISPOSITION in the given year
-#   (disposition-year basis, not arrest cohorts) — see DCJS data notes:
-#   https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/dispositiondatanotes.pdf
+#   (disposition-year basis, not arrest cohorts) — see the DCJS data notes,
+#   now published on the page above.
 # Dependencies: Python 3, xlrd 2.x (legacy .xls reader).
 
 import json
 import re
 import sys
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -39,14 +48,64 @@ BOROUGHS = {
     "richmond": "Staten Island",
 }
 
-# Editions, newest first. Each: (tag, base URL or wayback prefix, years to take)
-CURRENT_BASE = "https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/{b}.xls"
+# Editions, newest first. Each: (tag, function slug -> candidate URLs in order,
+# years to take). The first candidate that serves an .xls workbook wins.
+DCJS_DAM_SEARCH = "https://criminaljustice.ny.gov/dam_api/search"
+DCJS_DAM_CATEGORY = "DCJS/DCJS Adult Arrests County"
 WB2022 = "http://web.archive.org/web/20220608023009id_/https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/{b}.xls"
 WB2020 = "http://web.archive.org/web/20200218202909id_/https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/{b}.xls"
+
+_dam_index = None
+
+
+def dcjs_dam_index():
+    """lowercase filename -> 'original' download URL for every workbook DCJS lists
+    in its county-table category. Fails loud if the listing is empty."""
+    global _dam_index
+    if _dam_index is not None:
+        return _dam_index
+    index, offset, total = {}, 0, None
+    while total is None or offset < total:
+        qs = urllib.parse.urlencode({
+            "query": f"cat:({DCJS_DAM_CATEGORY})", "expand": "embeds",
+            "limit": 100, "offset": offset, "sort": "filename",
+            "search_document_text": "false",
+        })
+        req = urllib.request.Request(f"{DCJS_DAM_SEARCH}?{qs}",
+                                     headers={"User-Agent": "Mozilla/5.0 (justice-funnel research)"})
+        page = json.loads(urllib.request.urlopen(req, timeout=60).read())
+        total, items = page.get("total_count", 0), page.get("items") or []
+        if not items:
+            break
+        for it in items:
+            url = ((it.get("embeds") or {}).get("original") or {}).get("url")
+            if url:
+                index[it["filename"].lower()] = url
+        offset += len(items)
+    if not index:
+        raise RuntimeError(f"DCJS asset search returned no files for category {DCJS_DAM_CATEGORY!r}")
+    print(f"  DCJS asset library lists {len(index)} county workbooks")
+    _dam_index = index
+    return index
+
+
+def current_urls(slug):
+    idx = dcjs_dam_index()
+    # "{slug}_AdultArrests.xls" is the copy tagged by county (what the page's
+    # county search returns); "{Slug}.xls" is an untagged duplicate upload.
+    return [idx[n] for n in (f"{slug}_adultarrests.xls", f"{slug}.xls") if n in idx]
+
+
+def wayback_urls(template):
+    # 2022 wayback snapshot capitalized filenames; try both
+    return lambda slug: [template.format(b=nm) for nm in dict.fromkeys(
+        [slug, slug.capitalize(), slug.title()])]
+
+
 EDITIONS = [
-    ("current", CURRENT_BASE, {2020, 2021, 2022, 2023, 2024}),
-    ("ed2022", WB2022, {2017, 2018, 2019}),
-    ("ed2020", WB2020, {2014, 2015, 2016}),
+    ("current", current_urls, {2020, 2021, 2022, 2023, 2024}),
+    ("ed2022", wayback_urls(WB2022), {2017, 2018, 2019}),
+    ("ed2020", wayback_urls(WB2020), {2014, 2015, 2016}),
 ]
 
 # Canonical outcome categories <- label prefixes as they appear across editions
@@ -72,13 +131,17 @@ SENTENCES = {"Prison": "prison", "Jail": "jail", "Time Served": "time_served",
 
 
 def fetch(url, dest):
+    """Download url to dest. Returns (path, url) or (path, None) for a cache hit."""
     if dest.exists() and dest.stat().st_size > 10000:
-        return dest
+        return dest, None
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 (justice-funnel research)"})
     data = urllib.request.urlopen(req, timeout=180).read()
+    # A redirect to a CMS error page is a 200 full of HTML; these files are OLE2.
+    if not data.startswith(b"\xd0\xcf\x11\xe0"):
+        raise ValueError(f"not an .xls workbook ({len(data):,} bytes from {url})")
     dest.write_bytes(data)
     print(f"  downloaded {dest.name} ({len(data):,} bytes)")
-    return dest
+    return dest, url
 
 
 def parse_sheet(path):
@@ -157,19 +220,27 @@ def parse_sheet(path):
 def main():
     data = {}   # borough -> year -> severity -> {key: n}
     sourcing = {}  # year -> edition tag (for methodology display)
-    for tag, base, want_years in EDITIONS:
+    served_by = {}  # edition tag -> {borough slug: URL that served the file}
+    for tag, candidates, want_years in EDITIONS:
         print(f"Edition {tag}:")
         for slug, borough in BOROUGHS.items():
-            # 2022 wayback snapshot capitalized filenames; try both
-            names = [slug, slug.capitalize(), slug.title()]
-            path = None
-            for nm in names:
+            dest = RAW / f"{tag}_{slug}.xls"
+            path, err = None, None
+            try:
+                urls = candidates(slug)
+            except Exception as e:
+                print(f"  FAILED {slug}: could not list source files: {e}", file=sys.stderr)
+                sys.exit(1)
+            if not urls:
+                err = f"no {slug} workbook listed for edition {tag}"
+            for url in urls:
                 try:
-                    path = fetch(base.format(b=nm), RAW / f"{tag}_{slug}.xls")
+                    path, got = fetch(url, dest)
+                    if got:
+                        served_by.setdefault(tag, {})[slug] = got
                     break
                 except Exception as e:
                     err = e
-                    continue
             if path is None:
                 print(f"  FAILED {slug}: {err}", file=sys.stderr)
                 sys.exit(1)
@@ -182,6 +253,13 @@ def main():
                     data.setdefault(borough, {}).setdefault(y, {}).setdefault(sev, {})
                     for k, n in kv.items():
                         data[borough][y][sev][k] = n
+
+    missing = [f"{BOROUGHS[slug]} {y}" for _, _, ys in EDITIONS for y in sorted(ys)
+               for slug in BOROUGHS if y not in data.get(BOROUGHS[slug], {})]
+    if missing:
+        print(f"FAILED: expected years not found in the workbooks: {', '.join(missing)}. "
+              "A new edition may have shifted the year window; update EDITIONS.", file=sys.stderr)
+        sys.exit(1)
 
     # Citywide = sum of the five boroughs
     city = {}
@@ -219,10 +297,13 @@ def main():
             "basis": "disposition year (cases reaching final disposition that year), not arrest cohorts",
             "source": "DCJS Dispositions of Adult Arrests (18 and Older), county spreadsheets",
             "editions": {
-                "current": "criminaljustice.ny.gov, accessed 2026-07-10 (years 2020-2024; file dated May 2025)",
+                "current": "DCJS county tables, file dated May 2025 (years 2020-2024), from the "
+                           "DCJS asset library behind criminaljustice.ny.gov/adult-arrests-by-county "
+                           "(moved from /crimnet/ojsa/dispos/ in the 2026 site rebuild).",
                 "ed2022": "Wayback Machine snapshot 2022-06-08 (years 2017-2019)",
                 "ed2020": "Wayback Machine snapshot 2020-02-18 (years 2014-2016)",
             },
+            "retrieved_from": {t: dict(sorted(u.items())) for t, u in sorted(served_by.items())},
             "year_sourcing": {str(y): t for y, t in sorted(sourcing.items())},
         },
         "data": data,
