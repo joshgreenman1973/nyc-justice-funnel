@@ -7,7 +7,10 @@
 #   "Dispositions of Adult Arrests (18 and Older)" county spreadsheets:
 #   https://criminaljustice.ny.gov/dispositions-adult-arrests
 #   county tables: https://criminaljustice.ny.gov/adult-arrests-by-county
-#   - Current edition: disposition years 2020-2024 (file dated May 2025)
+#   - Current edition: disposition years 2021-2025 (we use 2021-2024; 2025 is
+#     the newest column DCJS now publishes and is held out, see EDITIONS)
+#   - May 2025 edition via Wayback Machine: disposition years 2020-2024
+#     (we use 2020 from it)
 #   - June 2022 edition via Wayback Machine: disposition years 2017-2021
 #     (we use 2017-2019 from it)
 #   - February 2020 edition via Wayback Machine: disposition years 2014-2018
@@ -17,8 +20,10 @@
 #   state's digital asset library behind the "by County / Region" page, which
 #   lists them through its own search endpoint (/dam_api/search, category
 #   "DCJS/DCJS Adult Arrests County"). The current edition is resolved through
-#   that endpoint on every run; the files it served on 2026-09-12 are
-#   byte-identical to the May 2025 workbooks previously at /crimnet/ojsa/dispos/.
+#   that endpoint on every run. In autumn 2026 DCJS replaced those uploads with a
+#   new edition under new filenames ("<county> 5-year arrest disposed.xls",
+#   disposition years 2021-2025), which dropped 2020 out of the current files;
+#   2020 now comes from the Wayback copy of the May 2025 edition.
 # Description: parses the felony and misdemeanor blocks of each borough's
 #   spreadsheet in each edition, maps category labels across editions to a
 #   canonical vocabulary, and writes data/dispositions.json.
@@ -52,6 +57,7 @@ BOROUGHS = {
 # years to take). The first candidate that serves an .xls workbook wins.
 DCJS_DAM_SEARCH = "https://criminaljustice.ny.gov/dam_api/search"
 DCJS_DAM_CATEGORY = "DCJS/DCJS Adult Arrests County"
+WB2025 = "http://web.archive.org/web/20251210141021id_/https://criminaljustice.ny.gov/crimnet/ojsa/dispos/{b}.xls"
 WB2022 = "http://web.archive.org/web/20220608023009id_/https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/{b}.xls"
 WB2020 = "http://web.archive.org/web/20200218202909id_/https://www.criminaljustice.ny.gov/crimnet/ojsa/dispos/{b}.xls"
 
@@ -91,9 +97,13 @@ def dcjs_dam_index():
 
 def current_urls(slug):
     idx = dcjs_dam_index()
-    # "{slug}_AdultArrests.xls" is the copy tagged by county (what the page's
-    # county search returns); "{Slug}.xls" is an untagged duplicate upload.
-    return [idx[n] for n in (f"{slug}_adultarrests.xls", f"{slug}.xls") if n in idx]
+    # Naming has changed twice. "<county> 5-year arrest disposed.xls" is the
+    # autumn 2026 edition; "{slug}_AdultArrests.xls" was the copy tagged by
+    # county before that, and "{Slug}.xls" an untagged duplicate upload. Try
+    # newest first, fall back if DCJS reverts.
+    names = (f"{slug} 5-year arrest disposed.xls",
+             f"{slug}_adultarrests.xls", f"{slug}.xls")
+    return [idx[n] for n in names if n in idx]
 
 
 def wayback_urls(template):
@@ -102,8 +112,12 @@ def wayback_urls(template):
         [slug, slug.capitalize(), slug.title()])]
 
 
+# The current files also carry 2025. It is held out deliberately: dispositions
+# lag arrests, so the newest column in a "5-year arrest disposed" workbook is
+# still filling in, and adding a year is an editorial call, not a build one.
 EDITIONS = [
-    ("current", current_urls, {2020, 2021, 2022, 2023, 2024}),
+    ("current", current_urls, {2021, 2022, 2023, 2024}),
+    ("ed2025", wayback_urls(WB2025), {2020}),
     ("ed2022", wayback_urls(WB2022), {2017, 2018, 2019}),
     ("ed2020", wayback_urls(WB2020), {2014, 2015, 2016}),
 ]
@@ -297,9 +311,13 @@ def main():
             "basis": "disposition year (cases reaching final disposition that year), not arrest cohorts",
             "source": "DCJS Dispositions of Adult Arrests (18 and Older), county spreadsheets",
             "editions": {
-                "current": "DCJS county tables, file dated May 2025 (years 2020-2024), from the "
-                           "DCJS asset library behind criminaljustice.ny.gov/adult-arrests-by-county "
-                           "(moved from /crimnet/ojsa/dispos/ in the 2026 site rebuild).",
+                "current": "DCJS county tables, autumn 2026 edition (years 2021-2025, of which "
+                           "we use 2021-2024), from the DCJS asset library behind "
+                           "criminaljustice.ny.gov/adult-arrests-by-county (moved from "
+                           "/crimnet/ojsa/dispos/ in the 2026 site rebuild).",
+                "ed2025": "DCJS county tables dated May 2025 (years 2020-2024), Wayback Machine "
+                          "snapshot 2025-12-10; the source for 2020, which the current edition "
+                          "no longer carries.",
                 "ed2022": "Wayback Machine snapshot 2022-06-08 (years 2017-2019)",
                 "ed2020": "Wayback Machine snapshot 2020-02-18 (years 2014-2016)",
             },
